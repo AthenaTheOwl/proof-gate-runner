@@ -1,77 +1,57 @@
 # First PR after the scaffold
 
-This file describes the literal next PR after the v0 scaffold lands.
-Spec 0002 is the work plan; this file is the file-level changeset.
+This file describes the actual first runnable PR after the v0 scaffold.
+The full spec-0002 design listed four gates, a `pyproject.toml`, and a
+PR-comment upsert step. v0 narrows that to two gates and a step-summary
+write per `decisions/DEC-001-gate-rule-corpus-v0.md`. The deferred work
+moves to spec 0003.
 
-## Goal
+## goal
 
-A working `proof-gates` CLI plus a composite GitHub Action that runs
-five gates on a repo and exits non-zero on any failing rule. The Action
-runs on this repo's own PRs as proof-of-discipline. Three seed entries
-in the bug-classes corpus reference real PRs from the portfolio.
+A working composite GitHub Action plus a single shell entry point that
+runs the two v0 gates on a repo and exits non-zero on any fail finding.
+The Action runs on this repo's own PRs as proof-of-discipline.
 
-## Files changed
+## files added by the first runnable PR
 
-New:
+- `action.yml` -- composite action
+- `scripts/run_gates.sh` -- shell entry point
+- `scripts/lib/gates.py` -- dispatcher, `Finding`, `GateResult`,
+  registry, markdown report
+- `scripts/lib/voice_lint.py` -- banlist + reversal-pattern scan
+- `scripts/lib/spec_check.py` -- R-ID parse + cross-reference
+- `catalogue/voice_lint.md` -- public rendering of the voice_lint rules
+- `decisions/DEC-001-gate-rule-corpus-v0.md` -- the scope-cut record
+- `.github/workflows/self-ci.yml` -- runs the Action on this repo's PRs
+- `tests/test_run_gates.sh` -- offline shell harness with synthetic
+  fixtures for each gate
 
-- `pyproject.toml` — Python 3.11, `uv`, `click`, `pydantic`,
-  `jsonschema`, `pyyaml`
-- `cli/main.py` — `click` group with `run`
-- `src/__init__.py`
-- `src/gates/__init__.py`
-- `src/gates/base.py` — `Gate` protocol + `GateResult` + `Finding`
-- `src/gates/voice_lint.py`
-- `src/gates/spec_check.py`
-- `src/gates/encoding_sweep.py`
-- `src/gates/bom_sweep.py`
-- `src/gates/traceability.py`
-- `action.yml` — composite action
-- `catalogue/bug_classes_2026.md`
-- `catalogue/voice_lint.md`
-- `catalogue/spec_check.md`
-- `catalogue/encoding_sweep.md`
-- `catalogue/bom_sweep.md`
-- `catalogue/traceability.md`
-- `schemas/config.schema.json`
-- `config/proof-gates.yaml` — defaults file
-- `tests/fixtures/voice_lint/{good,bad}/`
-- `tests/fixtures/spec_check/{good,bad}/`
-- `tests/fixtures/encoding_sweep/{good,bad}/`
-- `tests/fixtures/bom_sweep/{good,bad}/`
-- `tests/fixtures/traceability/{good,bad}/`
-- `tests/test_cli.py`
-- `tests/test_gate_voice_lint.py`
-- `tests/test_gate_spec_check.py`
-- `tests/test_gate_encoding_sweep.py`
-- `tests/test_gate_bom_sweep.py`
-- `tests/test_gate_traceability.py`
-- `tests/test_end_to_end.py`
-- `scripts/catalogue_has_pr_ref.py`
-- `.github/workflows/self-ci.yml` — runs the Action on this repo
+## files updated by the first runnable PR
 
-Modified:
+- `README.md` -- replace placeholder "How to run" with the real command
+- `AGENTS.md` -- align Gates section with the v0 gate set
+- `specs/0002-design/tasks.md` -- check off rows landed in v0
 
-- `README.md` — replace placeholder "How to run" with the real command
-- `specs/0001-foundation/tasks.md` — check off spec-0002 rows
-- `AGENTS.md` — point Gates section at real scripts
-
-## Verification
+## verification
 
 ```bash
-uv sync
-uv run pytest -v
-uv run proof-gates run --all --path .
+bash tests/test_run_gates.sh
+bash scripts/run_gates.sh --gates voice_lint,spec_check --path .
+# optional, if actionlint is on PATH:
 actionlint action.yml
-uv run python scripts/catalogue_has_pr_ref.py
 ```
 
 Plus: push the PR, observe `self-ci.yml` runs the Action against the
-HEAD of the branch, and the Action passes (or fails for a real reason
-the contributor needs to fix).
+HEAD of the branch, the unit job runs the shell harness, and the
+dogfood job runs the composite action against this repo.
 
-## Out of scope for this PR
+## out of scope for this PR (moves to spec 0003)
 
-- The full 10+ entry corpus (spec 0003)
-- Worked external-repo examples (spec 0003)
-- A `v0` tagged release (spec 0003)
-- Per-rule configuration overrides beyond defaults
+- `ruff` and `pytest` gates (R-PGR-V1-005, R-PGR-V1-006)
+- `pyproject.toml`, `click`, `pydantic` (R-PGR-V1-011)
+- PR-comment upsert via `actions/github-script@v7` (the upsert half of
+  R-PGR-V1-007; the step-summary half ships in v0)
+- `encoding_sweep`, `bom_sweep`, `traceability` gates
+- the full 10+ entry corpus
+- worked external-repo examples
+- a `v0` tagged release

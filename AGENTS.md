@@ -7,16 +7,17 @@ recognizes the shape.
 
 ## What this repo is
 
-A drop-in GitHub Action plus CLI that runs five typed proof gates on a
-codebase: `voice_lint`, `spec_check`, `encoding_sweep`, `bom_sweep`,
-`traceability`. Each gate has a one-page rule reference in
-`catalogue/` and a real PR in the portfolio bug-classes corpus.
+A drop-in GitHub Action plus a stdlib-only python entry point that runs
+typed proof gates on a codebase. v0 ships two gates: `voice_lint` and
+`spec_check`. Three more (`encoding_sweep`, `bom_sweep`, `traceability`)
+are scoped to spec 0003. The scope cut is recorded in
+`decisions/DEC-001-gate-rule-corpus-v0.md`.
 
 ## Roles you may see in tasks
 
 | Role | What they do |
 |---|---|
-| `gate-author` | Implements a single gate under `src/gates/`, with rules referenced from `catalogue/` |
+| `gate-author` | Implements a single gate under `scripts/lib/`, with rules rendered into `catalogue/` |
 | `catalogue-curator` | Maintains `catalogue/*.md` and the `bug_classes_2026.md` index |
 | `action-author` | Maintains `action.yml` and the composite-action shape |
 | `dogfood-runner` | Wires the Action into the portfolio repos as launch corpus |
@@ -32,16 +33,21 @@ These roles exist in the spec ledger; v0 does not implement them.
 - Plain assertions. Rules are deterministic; catalogue entries are
   references, not pitches.
 
-## Gates (will land in spec 0002)
+## Gates (v0, landed in spec 0002)
 
-The repo runs its own gates on its own PRs in CI. If a `voice_lint`
-fix is shipped that regresses the gate against this repo, CI fails.
+The repo runs its own gates on its own PRs in CI via
+`.github/workflows/self-ci.yml`. If a `voice_lint` change is shipped
+that regresses the gate against this repo, CI fails.
 
-- `voice_lint` on every catalogue page and README
-- `spec_check` on every `R-PGR-*` ID
-- `validate_action.py` runs `actionlint` against `action.yml`
-- `catalogue_has_pr_ref.py` — every entry in `catalogue/bug_classes_2026.md`
-  links to a real PR in the portfolio
+- `voice_lint` on every README, AGENTS.md, and catalogue page
+  (catalogue/, specs/, and decisions/ are skipped by default; the host
+  can override by pointing `--path` at one of them directly)
+- `spec_check` on every `R-PGR-*` ID declared under
+  `specs/*/requirements.md`
+
+Deferred to spec 0003: `ruff`, `pytest`, `encoding_sweep`, `bom_sweep`,
+`traceability`, the bug-classes corpus, and the
+`actions/github-script@v7` PR-comment upsert step.
 
 ## Out of scope
 
