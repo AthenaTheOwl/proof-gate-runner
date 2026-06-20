@@ -1,0 +1,53 @@
+# self-ci workflow (R-PGR-V1-009).
+#
+# Runs the bash harness in tests/test_run_gates.sh, then invokes the
+# composite action against this repo's own tree to confirm it ships in
+# a usable shape.
+name: self-ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  unit:
+    name: tests/test_run_gates.sh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: run shell harness
+        shell: bash
+        run: bash tests/test_run_gates.sh
+
+  dogfood:
+    name: composite action against this repo
+    runs-on: ubuntu-latest
+    needs: unit
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: invoke local action
+        id: gates
+        uses: ./
+        with:
+          gates: voice_lint,spec_check
+          path: .
+
+      - name: confirm report file exists
+        shell: bash
+        run: |
+          report="${{ steps.gates.outputs.report }}"
+          if [ -z "$report" ] || [ ! -f "$report" ]; then
+            echo "self-ci: no report file produced" >&2
+            exit 1
+          fi
+          echo "report written to: $report"
+          head -50 "$report"

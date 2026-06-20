@@ -1,0 +1,52 @@
+# proof-gate-runner composite action (R-PGR-V1-001, R-PGR-V1-007).
+#
+# v0 scope per decisions/DEC-001-gate-rule-corpus-v0.md:
+#   gates available: voice_lint, spec_check
+#   gate runtime:    python3 (stdlib only); no pip install
+#   pr comment:      step writes the rendered markdown to
+#                    $GITHUB_STEP_SUMMARY; cross-repo upsert via
+#                    github-script lands with R-PGR-V1-005/V1-006 in
+#                    spec 0003.
+name: proof-gate-runner
+description: run a small set of typed proof gates and write a markdown summary
+
+inputs:
+  gates:
+    description: comma-separated gate names (currently voice_lint, spec_check)
+    required: true
+  path:
+    description: path to scan; defaults to the repository root
+    required: false
+    default: '.'
+  report:
+    description: markdown report output file; empty means a temp file under RUNNER_TEMP
+    required: false
+    default: ''
+
+outputs:
+  report:
+    description: path to the generated markdown report file
+    value: ${{ steps.run.outputs.report }}
+  status:
+    description: exit code from the gate run (0 pass, 1 fail, 2 unknown gate, 3 internal error)
+    value: ${{ steps.run.outputs.status }}
+
+runs:
+  using: composite
+  steps:
+    # the caller is expected to have run actions/checkout@v4 in the
+    # workflow before invoking this action; the action does not
+    # check out anything itself.
+    - name: set up python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: run gates
+      id: run
+      shell: bash
+      env:
+        PGR_GATES: ${{ inputs.gates }}
+        PGR_PATH: ${{ inputs.path }}
+        PGR_REPORT: ${{ inputs.report }}
+      run: bash "${{ github.action_path }}/scripts/run_gates.sh"

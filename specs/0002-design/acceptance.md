@@ -1,5 +1,13 @@
 # Spec 0002 — Acceptance (ProofGateRunner v0.1)
 
+> v0 narrowing: `decisions/DEC-001-gate-rule-corpus-v0.md` cuts this
+> spec down to the two stdlib gates (`voice_lint`, `spec_check`), a
+> composite action that calls `scripts/run_gates.sh` directly, and the
+> `self-ci` workflow. The `uv sync` / `proof-gates run` / `pytest`
+> commands below are the spec-0003 target, not the v0 surface. For the
+> v0 local verification path, see the README "how to run" section and
+> `tests/test_run_gates.sh`.
+
 v0.1 is done when a fresh clone of this repo can run every command in
 the "local verification" block, and the self-CI workflow runs the
 composite Action on a real PR and posts the summary table as a PR

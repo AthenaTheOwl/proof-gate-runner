@@ -1,48 +1,56 @@
 # Spec 0002 — Tasks (ProofGateRunner v0.1)
 
-Ordered for the next two PRs. PR-A lands the runnable CLI plus the
-composite action; PR-B wires the self-CI workflow and the PR-comment
-step. Each task carries one or more `R-PGR-V1-*` IDs.
+v0 ships the narrower surface recorded in
+`decisions/DEC-001-gate-rule-corpus-v0.md`: two gates, a stdlib-only
+python entry point, a composite action, and the self-CI workflow. The
+deferred rows (ruff, pytest, pyproject, github-script upsert) move to
+spec 0003.
 
-## PR-A — CLI, four gates, action.yml
+## PR-A — v0 entry point and two gates (landed)
 
-- [ ] R-PGR-V1-011 `pyproject.toml` with Python 3.11, `click`,
-      `pydantic`, dev deps `pytest`, `ruff`; entry point
-      `proof-gates = "cli.main:cli"`.
-- [ ] R-PGR-V1-008 `src/gates/base.py` — `Gate` protocol, `GateResult`,
-      `Finding` dataclasses.
-- [ ] R-PGR-V1-002 R-PGR-V1-008 R-PGR-V1-012 `cli/main.py` — `click`
-      group with `run`, gate registry dict, dispatch loop, exit-code
-      mapping per spec.
-- [ ] R-PGR-V1-002 `cli/report.py` — aggregate `GateResult` list into
-      the Markdown table from design.md.
-- [ ] R-PGR-V1-003 `src/gates/voice_lint.py` + banlist constant +
-      reversal-pattern regexes.
-- [ ] R-PGR-V1-004 `src/gates/spec_check.py` — parse
-      `specs/*/requirements.md` for `R-*-[A-Z0-9]+` IDs, grep
-      `src/`/`cli/`/`tests/` for each.
-- [ ] R-PGR-V1-005 `src/gates/ruff.py` — subprocess wrapper around
-      `ruff check --output-format json`; not-installed handling.
-- [ ] R-PGR-V1-006 `src/gates/pytest_gate.py` — subprocess wrapper
-      around `pytest -q`; not-installed and no-tests handling.
-- [ ] R-PGR-V1-010 Fixture pairs under `tests/fixtures/<gate>/{good,bad}/`
-      for the four gates.
-- [ ] R-PGR-V1-010 `tests/test_gate_voice_lint.py`,
-      `test_gate_spec_check.py`, `test_gate_ruff.py`,
-      `test_gate_pytest.py` — one integration test per gate.
-- [ ] R-PGR-V1-002 R-PGR-V1-012 `tests/test_cli.py` — exit code 0/1/2,
-      unknown-gate path, isolation (failing gate does not skip later
-      gates).
-- [ ] R-PGR-V1-001 `action.yml` — composite action with `gates` and
-      `path` inputs, `setup-python@v5`, `pip install -e .`,
-      `proof-gates run`, write to `$GITHUB_STEP_SUMMARY`.
+- [x] R-PGR-V1-001 `action.yml` — composite action with `gates` and
+      `path` inputs, `setup-python@v5`, single `run` step that invokes
+      `scripts/run_gates.sh` and writes the report to
+      `$GITHUB_STEP_SUMMARY`.
+- [x] R-PGR-V1-002 `scripts/run_gates.sh` + `scripts/lib/gates.py` —
+      shell wrapper plus python dispatcher with `--gates`, `--path`,
+      `--report`, exit-code mapping per spec.
+- [x] R-PGR-V1-003 `scripts/lib/voice_lint.py` — banlist constant +
+      reversal-pattern regexes. Rule rendering in
+      `catalogue/voice_lint.md`.
+- [x] R-PGR-V1-004 `scripts/lib/spec_check.py` — parse
+      `specs/*/requirements.md` for `R-*-[A-Z0-9]+` IDs (word-bounded),
+      cross-reference under `src/`, `cli/`, `scripts/`, `tests/`,
+      `decisions/`, `action.yml`, `.github/`, `README.md`, `AGENTS.md`.
+- [x] R-PGR-V1-008 `scripts/lib/gates.py` — `Finding` + `GateResult`
+      dataclasses and `REGISTRY` dispatch dict.
+- [x] R-PGR-V1-010 `tests/test_run_gates.sh` — synthetic good/bad
+      fixtures per gate, offline, runs in seconds on Git Bash and CI.
+- [x] R-PGR-V1-012 dispatcher runs every requested gate even if an
+      earlier gate fails; isolation case in the shell harness.
 
-## PR-B — self-CI workflow and PR-comment upsert
+## PR-B — self-CI workflow and PR-comment (step-summary half)
 
-- [ ] R-PGR-V1-007 PR-comment upsert step in `action.yml` using
-      `actions/github-script@v7`, keyed on the
-      `<!-- proof-gate-runner:summary -->` marker.
-- [ ] R-PGR-V1-009 `.github/workflows/self-ci.yml` — invokes `./` on
-      every PR to `main` with the four-gate list.
-- [ ] R-PGR-V1-007 `tests/test_report.py` — Markdown table golden
-      output for the upsert flow.
+R-PGR-V1-007 is split: the step-summary write lands here in PR-B; the
+`actions/github-script@v7` upsert against the marker comment is
+deferred to spec 0003 (listed below).
+
+- [x] R-PGR-V1-007 (step-summary half) — `scripts/run_gates.sh`
+      appends the markdown report to `$GITHUB_STEP_SUMMARY` when it
+      runs in Actions. The marker `<!-- proof-gate-runner:summary -->`
+      is written into the report by `gates.render_report`.
+- [x] R-PGR-V1-009 `.github/workflows/self-ci.yml` — unit job runs the
+      shell harness; dogfood job invokes `./` against this repo.
+
+## Deferred to spec 0003 (per DEC-001)
+
+- [ ] R-PGR-V1-005 `ruff` gate. Requires `ruff` on PATH and the
+      pip-install step the v0 action avoids.
+- [ ] R-PGR-V1-006 `pytest` gate. Same shape; collection-error parser
+      lives with the spec 0003 work.
+- [ ] R-PGR-V1-007 (upsert half) — `actions/github-script@v7` step
+      that patches the marker comment on PR events. v0 only writes to
+      the step summary.
+- [ ] R-PGR-V1-011 `pyproject.toml` with `click` + `pydantic`. The v0
+      entry point uses argparse and dataclasses from the stdlib; the
+      package shape lands when the ruff/pytest gates need it.

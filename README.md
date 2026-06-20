@@ -1,52 +1,45 @@
-# ProofGateRunner — Public Gate-Rule Corpus and GitHub Action
+# proof-gate-runner -- typed gates and a public rule corpus
 
-A drop-in GitHub Action that runs a small set of typed proof gates on
-every pull request: `voice_lint`, `spec_check`, `encoding_sweep`,
-`bom_sweep`, and `traceability`. The Action ships alongside a public
-catalogue of the bug classes the gates catch, with real PR references
-from the author's own portfolio as launch corpus.
+A drop-in GitHub Action that runs typed proof gates on every pull
+request. v0 ships two gates: `voice_lint` and `spec_check`. Three more
+(`encoding_sweep`, `bom_sweep`, `traceability`) are scoped to spec 0003.
+See `decisions/DEC-001-gate-rule-corpus-v0.md` for the scope cut.
 
-## What this is
+## what this is
 
-AI-PR volume scaled past human-review capacity at every serious shop
-in 2026. The 2026-W22 codex voice review caught BOM artifacts and
-Latin-1 mojibake — exactly the bug class a typed proof gate catches in
-half a second and a human reviewer misses on the fifth PR of the day.
+AI-PR volume scaled past human-review capacity at every serious shop in
+2026. The 2026-W22 codex voice review caught BOM artifacts and Latin-1
+mojibake -- exactly the bug class a typed proof gate catches in half a
+second and a human reviewer misses on the fifth PR of the day.
 
-ProofGateRunner is the gate chain extracted from the author's working
-portfolio, packaged as a single GitHub Action so any repo can drop it
-in. The five gates:
+The Action is one composite action plus a stdlib-only python entry
+point. No `pip install`, no third-party runtime dependency, no Docker.
 
-| Gate | What it catches |
-|---|---|
-| `voice_lint` | Marketing words, antithetical reversals, structural AI tells |
-| `spec_check` | Requirements IDs in `specs/*/requirements.md` without an implementation or test |
-| `encoding_sweep` | Latin-1 mojibake, mixed-encoding files, smart-quote drift |
-| `bom_sweep` | UTF-8 BOM and other zero-width invisibles in text files |
-| `traceability` | Decision records that reference a spec ID that doesn't exist |
+## gates in v0
 
-Each gate has a one-page rule reference in `catalogue/` and a real PR
-in the bug-classes corpus showing what it would have caught.
+| gate | what it catches | rule rendering |
+|---|---|---|
+| `voice_lint` | banlist words and antithetical-reversal sentence shapes in `.md`/`.txt`/`.rst` | `catalogue/voice_lint.md` |
+| `spec_check` | `R-*` requirement IDs declared in `specs/*/requirements.md` that are not referenced anywhere under `src/`, `cli/`, `scripts/`, `tests/`, `decisions/`, `action.yml`, `.github/`, `README.md`, or `AGENTS.md` | (rules embedded in `scripts/lib/spec_check.py`) |
 
-## Status
+## status
 
-v0 scaffold. No implementation yet — only the spec ledger and the file
-layout below. First runnable Action lands in spec 0002.
+- [x] repo scaffold + LICENSE + AGENTS.md
+- [x] spec 0001 (foundation) -- requirements, design, tasks, acceptance
+- [x] spec 0002 (design) -- requirements, design, tasks, acceptance
+- [x] `action.yml` + `scripts/run_gates.sh` + `scripts/lib/{gates,voice_lint,spec_check}.py`
+- [x] self-CI: the Action runs on this repo's own PRs (`.github/workflows/self-ci.yml`)
+- [ ] `encoding_sweep`, `bom_sweep`, `traceability` gates (spec 0003)
+- [ ] catalogue with at least 10 real bug-class entries from portfolio (spec 0003)
+- [ ] worked drop-in examples for external repos (spec 0003)
+- [ ] PR-comment upsert via `actions/github-script@v7` (spec 0003; v0 writes to `$GITHUB_STEP_SUMMARY` only)
 
-- [x] Repo scaffold + LICENSE + AGENTS.md
-- [x] Spec 0001 (foundation) — requirements, design, tasks, acceptance
-- [x] First-PR plan in `docs/first-pr.md`
-- [ ] `action.yml` and five gate scripts
-- [ ] Self-CI: the Action runs on this repo's own PRs
-- [ ] Catalogue with at least 10 real bug-class entries from portfolio
-- [ ] Drop-in instructions for external repos
+## how to run
 
-## How to run
-
-Placeholder. The runnable Action lands in spec 0002. Intended shape:
+In a consumer repo:
 
 ```yaml
-# .github/workflows/proof-gates.yml in your repo
+# .github/workflows/proof-gates.yml
 name: proof-gates
 on: [pull_request]
 jobs:
@@ -56,82 +49,83 @@ jobs:
       - uses: actions/checkout@v4
       - uses: AthenaTheOwl/proof-gate-runner@v0
         with:
-          gates: voice_lint,spec_check,encoding_sweep,bom_sweep,traceability
+          gates: voice_lint,spec_check
 ```
 
-Locally:
+Locally (no install step required, python 3 is the only runtime
+dependency):
 
 ```bash
-uv sync
-uv run proof-gates run --gate voice_lint --path .
-uv run proof-gates run --all --path .
+bash scripts/run_gates.sh --gates voice_lint --path .
+bash scripts/run_gates.sh --gates voice_lint,spec_check --path . --report report.md
 ```
 
-Until spec 0002 lands, the only thing that runs is
-`python -c "print('scaffold')"`.
+Or invoke the python entry point directly:
 
-## Layout
+```bash
+python3 scripts/lib/gates.py --gates voice_lint --path .
+```
+
+Exit codes: `0` all gates passed, `1` at least one fail finding, `2`
+unknown gate name, `3` internal error (e.g. `--path` does not exist).
+
+## test harness
+
+```bash
+bash tests/test_run_gates.sh
+```
+
+The harness creates synthetic good/bad fixtures under a temp directory
+for each gate, runs `scripts/run_gates.sh` against them, and checks the
+exit code and the report contents. It runs offline, in seconds, on
+Linux CI and on Git Bash.
+
+## layout
 
 ```
 proof-gate-runner/
   README.md
   LICENSE
   AGENTS.md
-  .gitignore
+  action.yml
+  scripts/
+    run_gates.sh
+    lib/
+      gates.py        # dispatcher + Finding/GateResult + markdown report
+      voice_lint.py
+      spec_check.py
+  catalogue/
+    voice_lint.md
+  decisions/
+    DEC-001-gate-rule-corpus-v0.md
   specs/
     0001-foundation/
-      requirements.md
-      design.md
-      tasks.md
-      acceptance.md
+    0002-design/
+  .github/
+    workflows/
+      self-ci.yml
+  tests/
+    test_run_gates.sh
   docs/
     first-pr.md
 ```
 
-Planned but not yet present:
+## who this is for
 
-```
-  action.yml
-  cli/
-    main.py
-  src/
-    gates/
-      voice_lint.py
-      spec_check.py
-      encoding_sweep.py
-      bom_sweep.py
-      traceability.py
-  catalogue/
-    bug_classes_2026.md
-    voice_lint.md
-    spec_check.md
-    encoding_sweep.md
-    bom_sweep.md
-    traceability.md
-  examples/
-    wired_repos/
-  tests/
-    fixtures/
-  pyproject.toml
-```
+- open-source maintainers handling drive-by AI-generated PRs
+- individual builders running typed-artifact discipline across a
+  portfolio of repos
+- engineering platform teams once the catalogue is large enough to cite
 
-## Who this is for
+## what this is not
 
-- Open-source maintainers drowning in drive-by AI-generated PRs
-- Individual builders running the same kind of typed-artifact
-  discipline the rest of this portfolio runs on
-- Eventually, engineering platform teams once the catalogue is large
-  enough to be cited as a reference
-
-## What this is not
-
-- Not a hosted SaaS. There is no proof-gates.io. The repo is one
-  GitHub Action plus a CLI plus a catalogue.
-- Not a code-review service. It runs deterministic checks, not LLM
+- not a hosted SaaS. there is no proof-gates.io. the repo is one
+  GitHub Action plus a small python entry point plus a catalogue.
+- not a code-review service. it runs deterministic checks, not LLM
   judgment.
-- Not a security scanner. There are good ones; the niche here is
+- not a security scanner. there are good ones; the niche here is
   voice, spec, and encoding hygiene under AI-PR velocity.
 
-## License
+## license
 
 MIT. See `LICENSE`.
