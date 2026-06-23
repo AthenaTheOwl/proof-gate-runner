@@ -1,0 +1,4 @@
+# Streamlit Community Cloud reads this file. streamlit_app.py imports the
+# committed gate code under scripts/lib/ and runs it in-process against the
+# committed examples/demo-repo fixture, so the app only needs streamlit.
+streamlit>=1.40

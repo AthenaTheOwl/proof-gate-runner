@@ -101,6 +101,28 @@ The point: you see in one screen which bug classes a tree trips and how
 often, so a reviewer drowning in AI-generated PRs knows where to look
 first. Add `--path <dir>` to point the same run at any other tree.
 
+## live demo
+
+`streamlit_app.py` (repo root) wraps the same `demo` verb as an
+interactive page: it runs the v0 gates against the committed
+`examples/demo-repo` fixture and renders the ranked result, a
+per-finding table filterable by gate, and a paste-box to voice_lint your
+own text. It reads the committed gate code and fixture directly -- no
+network, no secrets.
+
+<!-- live url: https://<app>.streamlit.app -->
+
+run locally:
+
+```bash
+pip install -r requirements.txt
+streamlit run streamlit_app.py
+```
+
+deploy on Streamlit Community Cloud: New app -> repo
+`AthenaTheOwl/proof-gate-runner`, branch `main`, main file
+`streamlit_app.py`.
+
 ## test harness
 
 ```bash
