@@ -13,7 +13,7 @@ catalog.
 - file extensions scanned: `.md`, `.txt`, `.rst`
 - directories skipped by default: `.git`, `.venv`, `venv`,
   `node_modules`, `__pycache__`, `.pytest_cache`, `specs`, `decisions`,
-  `catalogue`
+  `catalogue`, `examples`
 - a host may point `--path` directly at one of the skipped directories
   to force a scan
 

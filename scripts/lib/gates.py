@@ -26,6 +26,7 @@ import argparse
 import importlib
 import sys
 import time
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Optional
@@ -106,6 +107,72 @@ def render_report(results: list[GateResult]) -> str:
     return "\n".join(lines)
 
 
+def render_summary(results: list[GateResult], target: Path) -> str:
+    """A human-readable summary of a gate run: which gates failed, the
+    rules ranked by how often they fired, and the single worst offender.
+
+    This is what `demo` prints. It is not the markdown PR report (that is
+    render_report); it is the at-a-glance result a person reads in the
+    terminal.
+    """
+    total = sum(len(r.findings) for r in results)
+    failed = [r for r in results if not r.passed]
+    lines: list[str] = []
+    lines.append(f"proof-gate-runner -- scanned {target}")
+    lines.append(
+        f"{len(results)} gate(s), {total} finding(s), "
+        f"{len(failed)} gate(s) failing"
+    )
+    lines.append("")
+
+    col = f"{'gate':<12} {'result':<6} {'findings':>8}  rules that fired"
+    lines.append(col)
+    lines.append("-" * max(len(col), 60))
+    for r in results:
+        verdict = "pass" if r.passed else "FAIL"
+        rules = sorted({_short_rule(f.rule_id) for f in r.findings})
+        rules_txt = ", ".join(rules) if rules else "-"
+        lines.append(
+            f"{r.gate:<12} {verdict:<6} {len(r.findings):>8}  {rules_txt}"
+        )
+    lines.append("")
+
+    counts = Counter(
+        _short_rule(f.rule_id) for r in results for f in r.findings
+    )
+    if counts:
+        lines.append("findings ranked by rule:")
+        for rule, n in counts.most_common():
+            lines.append(f"  {n:>3}x  {rule}")
+        lines.append("")
+        worst_rule, worst_n = counts.most_common(1)[0]
+        example = next(
+            f for r in results for f in r.findings
+            if _short_rule(f.rule_id) == worst_rule
+        )
+        loc = example.path or "(no path)"
+        if example.line is not None:
+            loc += f":{example.line}"
+        # the headline names the rule + first location, not the raw match
+        # text: this summary is meant to be readable in any doc, including
+        # the repo's own voice_lint-gated README, so it never echoes a
+        # matched banlist word back out.
+        lines.append(
+            f"top rule: {worst_rule} fired {worst_n}x (first at {loc})"
+        )
+    else:
+        lines.append("no findings -- the scanned tree is clean.")
+    return "\n".join(lines) + "\n"
+
+
+def _short_rule(rule_id: str) -> str:
+    # collapse voice_lint::banlist::leverage -> voice_lint::banlist so the
+    # ranking groups the whole banlist class together rather than one row
+    # per word.
+    parts = rule_id.split("::")
+    return "::".join(parts[:2]) if len(parts) > 2 else rule_id
+
+
 def _emit_findings_to_stdout(results: list[GateResult]) -> None:
     # always written so the harness step log shows the findings even when
     # --report is set. callers invoking gates.py directly with --report=""
@@ -123,10 +190,49 @@ def _emit_findings_to_stdout(results: list[GateResult]) -> None:
             sys.stdout.write(f"  [{f.severity}] {f.rule_id} {loc}: {f.message}\n")
 
 
+def _demo_fixture_dir() -> Path:
+    # examples/demo-repo, resolved relative to this file so the demo works
+    # from any cwd and offline.
+    return (Path(__file__).resolve().parents[2] / "examples" / "demo-repo")
+
+
+def run_demo(argv: Optional[list[str]] = None) -> int:
+    """No-arg demo: run every v0 gate against the committed demo fixture
+    and print a readable, ranked summary. Read-only and offline.
+
+    Exit code mirrors a real run (1 because the fixture is planted with
+    failures on purpose), but the demo is about the readable output, not
+    the code. Pass --path to point it at any other tree.
+    """
+    parser = argparse.ArgumentParser(
+        prog="proof-gates demo",
+        description="run all v0 gates against the committed demo fixture and print a readable summary",
+    )
+    parser.add_argument(
+        "--path",
+        default=None,
+        help="tree to scan; default is the committed examples/demo-repo fixture",
+    )
+    args = parser.parse_args(argv)
+
+    target = Path(args.path) if args.path else _demo_fixture_dir()
+    if not target.exists():
+        sys.stderr.write(f"proof-gates demo: path does not exist: {target}\n")
+        return 3
+
+    results = [_run_one(name, target) for name in REGISTRY]
+    sys.stdout.write(render_summary(results, target))
+    return 0 if all(r.passed for r in results) else 1
+
+
 def main(argv: Optional[list[str]] = None) -> int:
+    raw = list(sys.argv[1:] if argv is None else argv)
+    if raw and raw[0] == "demo":
+        return run_demo(raw[1:])
+
     parser = argparse.ArgumentParser(
         prog="proof-gates",
-        description="run one or more proof gates against a path",
+        description="run one or more proof gates against a path (or `demo` for a no-arg readable run)",
     )
     parser.add_argument(
         "--gates",

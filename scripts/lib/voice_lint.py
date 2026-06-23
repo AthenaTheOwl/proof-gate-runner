@@ -11,10 +11,10 @@ The banlist and reversal patterns live here as the single canonical
 source. v0 does not skip code fences -- see design.md "failure modes".
 
 Rule directories that exist to *document* the rules themselves
-(``specs/``, ``decisions/``, ``catalogue/``) are skipped by default so
-the gate can be pointed at a repo root without flagging the rule
-catalog. The host can override by pointing --path directly at one of
-those directories.
+(``specs/``, ``decisions/``, ``catalogue/``, ``examples/``) are skipped
+by default so the gate can be pointed at a repo root without flagging
+the rule catalog or the planted demo fixture. The host can override by
+pointing --path directly at one of those directories.
 """
 from __future__ import annotations
 
@@ -45,6 +45,7 @@ SKIP_DIR_NAMES: frozenset[str] = frozenset({
     "specs",
     "decisions",
     "catalogue",
+    "examples",
     ".pytest_cache",
 })
 

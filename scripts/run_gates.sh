@@ -26,6 +26,33 @@ gates="${PGR_GATES:-}"
 target_path="${PGR_PATH:-.}"
 report_path="${PGR_REPORT:-}"
 
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+lib_dir="$script_dir/lib"
+
+# pick a python that actually runs (not just one on PATH): the Windows
+# Store shim resolves on `command -v` but exits nonzero, so probe each
+# candidate with --version before committing to it.
+python_bin=""
+for cand in "${PYTHON:-}" python3 python; do
+  [ -n "$cand" ] || continue
+  if command -v "$cand" >/dev/null 2>&1 && "$cand" --version >/dev/null 2>&1; then
+    python_bin="$cand"
+    break
+  fi
+done
+if [ -z "$python_bin" ]; then
+  echo "run_gates.sh: no working python interpreter on PATH" >&2
+  exit 3
+fi
+
+# `demo` is a no-arg readable run against the committed examples/demo-repo
+# fixture. Everything after `demo` is passed straight through to the
+# python entry point (e.g. --path to point it elsewhere).
+if [ "${1:-}" = "demo" ]; then
+  shift
+  exec "$python_bin" "$lib_dir/gates.py" demo "$@"
+fi
+
 while [ $# -gt 0 ]; do
   case "$1" in
     --gates)
@@ -69,23 +96,10 @@ if [ -z "$gates" ]; then
   exit 2
 fi
 
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-lib_dir="$script_dir/lib"
-
 if [ -z "$report_path" ]; then
   tmp_root="${RUNNER_TEMP:-${TMPDIR:-/tmp}}"
   mkdir -p "$tmp_root"
   report_path="$tmp_root/proof-gate-runner-report.md"
-fi
-
-python_bin="${PYTHON:-python3}"
-if ! command -v "$python_bin" >/dev/null 2>&1; then
-  if command -v python >/dev/null 2>&1; then
-    python_bin="python"
-  else
-    echo "run_gates.sh: no python interpreter on PATH" >&2
-    exit 3
-  fi
 fi
 
 "$python_bin" "$lib_dir/gates.py" \

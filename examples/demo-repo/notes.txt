@@ -1,0 +1,6 @@
+release notes
+
+this build will unleash a synergy across the platform. the new module
+is robust under load.
+
+it's not a rewrite; it's a refactor.

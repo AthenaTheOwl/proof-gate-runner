@@ -69,6 +69,38 @@ python3 scripts/lib/gates.py --gates voice_lint --path .
 Exit codes: `0` all gates passed, `1` at least one fail finding, `2`
 unknown gate name, `3` internal error (e.g. `--path` does not exist).
 
+## try it
+
+One command, no arguments, no install. It runs both v0 gates against
+the committed `examples/demo-repo` fixture (planted on purpose with the
+bug classes the gates catch) and prints a ranked summary:
+
+```bash
+bash scripts/run_gates.sh demo
+# or: python3 scripts/lib/gates.py demo
+```
+
+```
+proof-gate-runner -- scanned .../examples/demo-repo
+2 gate(s), 10 finding(s), 2 gate(s) failing
+
+gate         result findings  rules that fired
+------------------------------------------------------------
+voice_lint   FAIL          8  voice_lint::banlist, voice_lint::reversal
+spec_check   FAIL          2  spec_check::unreferenced
+
+findings ranked by rule:
+    6x  voice_lint::banlist
+    2x  voice_lint::reversal
+    2x  spec_check::unreferenced
+
+top rule: voice_lint::banlist fired 6x (first at notes.txt:3)
+```
+
+The point: you see in one screen which bug classes a tree trips and how
+often, so a reviewer drowning in AI-generated PRs knows where to look
+first. Add `--path <dir>` to point the same run at any other tree.
+
 ## test harness
 
 ```bash
@@ -96,6 +128,8 @@ proof-gate-runner/
       spec_check.py
   catalogue/
     voice_lint.md
+  examples/
+    demo-repo/         # planted fixture scanned by `run_gates.sh demo`
   decisions/
     DEC-001-gate-rule-corpus-v0.md
   specs/

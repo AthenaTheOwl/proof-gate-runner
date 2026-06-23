@@ -250,13 +250,39 @@ cat > "$wb/specs/0001-x/requirements.md" <<'MD'
 ## R-FOO-0011 -- long suffix; must not be satisfied by R-FOO-001
 MD
 cat > "$wb/src/main.py" <<'PY'
-# This file references R-FOO-001, NOT R-FOO-0011.
-# A substring match would spuriously pass; word-bounded must fail.
+# This file references only the short id R-FOO-001.
+# A substring match would spuriously satisfy the longer declared id;
+# word-bounded matching must still report it unreferenced.
 PY
 report="$work/r11.md"
 rc=$(run_gates spec_check "$wb" "$report")
 check "exit code 1 when only a substring of the id is present" 1 "$rc"
 check_grep "report names the unreferenced rule" 'spec_check::unreferenced' "$report"
+
+# ---------------------------------------------------------------------------
+# 12. demo verb -- no-arg run against the committed fixture, readable output
+# ---------------------------------------------------------------------------
+emit "case: demo verb (no args)"
+demo_out="$work/demo.txt"
+bash "$script" demo >"$demo_out" 2>&1
+demo_rc=$?
+# the fixture is planted with failures on purpose, so exit 1 is expected
+check "demo exits 1 (planted-fail fixture)" 1 "$demo_rc"
+check_grep "demo names the runner" 'proof-gate-runner' "$demo_out"
+check_grep "demo prints the ranked-by-rule section" 'findings ranked by rule' "$demo_out"
+check_grep "demo surfaces the voice_lint banlist class" 'voice_lint::banlist' "$demo_out"
+check_grep "demo surfaces the spec_check unreferenced class" 'spec_check::unreferenced' "$demo_out"
+check_not_grep "demo output is not a raw json dump" '{"severity"' "$demo_out"
+
+# ---------------------------------------------------------------------------
+# 13. demo --path override scans an arbitrary clean tree
+# ---------------------------------------------------------------------------
+emit "case: demo --path override on a clean tree"
+demo_clean="$work/demo_clean.txt"
+bash "$script" demo --path "$vl_good" >"$demo_clean" 2>&1
+demo_clean_rc=$?
+check "demo on a clean tree exits 0" 0 "$demo_clean_rc"
+check_grep "demo on clean tree says clean" 'the scanned tree is clean' "$demo_clean"
 
 emit ""
 emit "summary: $pass passed, $fail failed"
