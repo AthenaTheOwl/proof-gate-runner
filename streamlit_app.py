@@ -139,35 +139,107 @@ with st.expander("the committed demo fixture (why it trips these gates)"):
             st.markdown(f"- `{fp.relative_to(fixture).as_posix()}`")
 
 st.divider()
-st.subheader("try it on your own text")
+st.subheader("run the gates on your own input")
 st.caption(
-    "paste any prose below to run the same voice_lint gate against it -- "
-    "banlist words and antithetical-reversal sentence shapes."
+    "this is the same engine the committed view runs above -- `gates._run_one`, "
+    "the v0 dispatcher -- pointed at text you write instead of the planted "
+    "fixture. write a doc, pick which gates fire, and get the real per-gate "
+    "verdict live: pass/FAIL, every finding, the top rule. nothing is "
+    "hardcoded; this calls the committed gate code in-process."
 )
+
+own_gates = st.multiselect(
+    "gates to run",
+    options=list(gates.REGISTRY),
+    default=list(gates.REGISTRY),
+    help=(
+        "voice_lint scans your prose for banlist words + reversal shapes. "
+        "spec_check needs a specs/*/requirements.md layout, so it only fires "
+        "if you upload a tree; on pasted prose it has nothing to scan."
+    ),
+)
+
 sample = st.text_area(
-    "text to lint",
+    "your text (treated as a .md file the gates scan)",
     value="This robust framework demonstrates synergy. It's not slow; it's fast.",
-    height=120,
+    height=140,
 )
-if sample.strip():
+
+if not own_gates:
+    st.info("pick at least one gate to run.")
+elif sample.strip():
     import tempfile
 
+    # write the pasted text into a scratch tree and run the REAL dispatcher
+    # against it -- exactly the call the committed view makes, just on a
+    # different --path. _run_one loads the gate module from the registry,
+    # invokes its run(path), and times it, so the verdict here is produced
+    # by the same code path a CI run uses.
     with tempfile.TemporaryDirectory() as td:
-        scratch = Path(td) / "pasted.md"
-        scratch.write_text(sample, encoding="utf-8")
-        own = voice_lint_run(scratch)
-    if own:
-        st.warning(f"voice_lint found {len(own)} finding(s) in your text:")
+        scratch_root = Path(td)
+        (scratch_root / "pasted.md").write_text(sample, encoding="utf-8")
+        own_results = [gates._run_one(name, scratch_root) for name in own_gates]
+
+    own_findings = [f for r in own_results for f in r.findings]
+    own_failing = [r for r in own_results if not r.passed]
+
+    m1, m2, m3 = st.columns(3)
+    m1.metric("gates run", len(own_results))
+    m2.metric("findings", len(own_findings))
+    m3.metric(
+        "gates failing",
+        len(own_failing),
+        help="a gate fails on any fail-severity finding",
+    )
+
+    st.dataframe(
+        [
+            {
+                "gate": r.gate,
+                "result": "pass" if r.passed else "FAIL",
+                "findings": len(r.findings),
+                "rules that fired": ", ".join(
+                    sorted({short_rule(f.rule_id) for f in r.findings}) or ["-"]
+                ),
+                "duration ms": r.duration_ms,
+            }
+            for r in own_results
+        ],
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    own_counts = Counter(short_rule(f.rule_id) for f in own_findings)
+    if own_counts:
+        worst_rule, worst_n = own_counts.most_common(1)[0]
+        st.warning(
+            f"**FAIL** -- {len(own_findings)} finding(s). top rule: "
+            f"`{worst_rule}` fired {worst_n}x. this PR would not pass the gate."
+        )
         st.dataframe(
             [
-                {"rule": f.rule_id, "line": f.line, "message": f.message}
-                for f in own
+                {
+                    "severity": f.severity,
+                    "rule": f.rule_id,
+                    "line": f.line,
+                    "message": f.message,
+                }
+                for f in own_findings
             ],
             use_container_width=True,
             hide_index=True,
         )
+        st.caption(
+            "edit the text above to drive the verdict to pass -- drop the "
+            "banlist words and the `not X; it's Y` shape and the gate clears."
+        )
     else:
-        st.success("voice_lint: clean. no banlist words or reversal shapes.")
+        st.success(
+            "**pass** -- no fail-severity findings. your text clears the "
+            "selected gate(s)."
+        )
+else:
+    st.info("write some text above to run the gates against it.")
 
 st.caption(
     "v0 ships voice_lint + spec_check. the gates + dispatcher live in "
