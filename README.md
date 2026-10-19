@@ -12,11 +12,6 @@ The rules render to a catalogue rather than a scoreboard. Each repo runs its own
 
 ## Try it
 
-[Evidence applicability](catalogue/evidence-applicability.md) defines the scope of
-a passing gate and a small stale-receipt review exercise. Use it when an AIP or
-gstack reviewer needs to distinguish historical success from checks that cover
-the current files and rule versions.
-
 One command, no arguments, no install. It runs both v0 gates against the committed `examples/demo-repo` fixture — planted on purpose with the bug classes the gates catch — and prints a ranked summary:
 
 ```bash
@@ -133,6 +128,11 @@ proof-gate-runner/
 ## Scope
 
 It runs deterministic checks, not LLM judgment, and it is not a security scanner — there are good ones. The niche is voice, spec, and encoding hygiene under AI-PR velocity. There is no hosted runner and no proof-gates.io: one GitHub Action, a small python entry point, and a catalogue.
+
+[Evidence applicability](catalogue/evidence-applicability.md) defines the scope of
+a passing gate and a small stale-receipt review exercise. Use it when an AIP or
+gstack reviewer needs to distinguish historical success from checks that cover
+the current files and rule versions.
 
 ## License
 
