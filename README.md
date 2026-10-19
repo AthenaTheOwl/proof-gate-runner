@@ -117,6 +117,7 @@ proof-gate-runner/
       voice_lint.py
       spec_check.py
   catalogue/voice_lint.md
+  catalogue/evidence-applicability.md
   examples/demo-repo/         # planted fixture scanned by `run_gates.sh demo`
   decisions/DEC-001-gate-rule-corpus-v0.md
   specs/0001-foundation/  specs/0002-design/
