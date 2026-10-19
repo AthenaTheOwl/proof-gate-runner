@@ -130,9 +130,9 @@ proof-gate-runner/
 It runs deterministic checks, not LLM judgment, and it is not a security scanner — there are good ones. The niche is voice, spec, and encoding hygiene under AI-PR velocity. There is no hosted runner and no proof-gates.io: one GitHub Action, a small python entry point, and a catalogue.
 
 [Evidence applicability](catalogue/evidence-applicability.md) defines the scope of
-a passing gate and a small stale-receipt review exercise. Use it when an AIP or
-gstack reviewer needs to distinguish historical success from checks that cover
-the current files and rule versions.
+a passing gate and a small stale-receipt review exercise. Use it when a reviewer
+needs to distinguish historical success from checks that cover the current files
+and rule versions.
 
 ## License
 

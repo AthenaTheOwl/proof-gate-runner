@@ -23,8 +23,6 @@ known violation, and the same gate command. Preserve both reports. Ask the revie
 to identify which report covers the proposed change before showing the author's
 claim. A sound review rejects the stale receipt even when the earlier run passed.
 
-[AI Product Team's change workflow](https://github.com/3orionkings/ai-product-team/blob/main/workflows/process-change.md)
-supplies a vocabulary for applicability and targeted revalidation. A gstack browser
-or implementation check can supply different evidence when needed. This catalogue
-entry changes no gate rule, installs no workflow, and makes no claim that a manual
-receipt protocol is enforced by the runner.
+A browser or implementation check can supply different evidence when needed.
+This catalogue entry changes no gate rule, installs no workflow, and makes no
+claim that a manual receipt protocol is enforced by the runner.
