@@ -1,10 +1,13 @@
 # A green gate belongs to one set of inputs
 
 `voice_lint` establishes that the scanned text triggered none of its configured
-rules. `spec_check` establishes reference coverage for declared requirement IDs.
-Neither establishes that a feature works, a requirement is well chosen, or a
-linked source supports a product claim. Keep those statements explicit when a
-specialist reviewer prepares a release recommendation.
+rules. It scans only `.md`, `.txt` and `.rst` files, skips any file that is not
+valid UTF-8, and skips any directory named `specs`, `decisions`, `catalogue` or
+`examples` at any depth; a pass says nothing about those files. `spec_check`
+establishes reference coverage for declared requirement IDs. Neither establishes
+that a feature works, a requirement is well chosen, or a linked source supports
+a product claim. Keep those statements explicit when a specialist reviewer
+prepares a release recommendation.
 
 A reusable proof receipt should carry the command and arguments, exit status,
 source revision or content digest, rule version, environment, and raw output
@@ -18,11 +21,14 @@ unknown. A rerun supplies a new observation, including a new failure. Keeping th
 separate prevents an agent from quietly converting yesterday's success into
 today's verification.
 
-The smallest review exercise uses a clean fixture, a changed fixture containing a
-known violation, and the same gate command. Preserve both reports. Ask the reviewer
-to identify which report covers the proposed change before showing the author's
-claim. A sound review rejects the stale receipt even when the earlier run passed.
+The smallest review exercise uses a clean fixture, a changed fixture containing
+a known violation, and the same gate command. Give each run its own `--report`
+path, since the default location is overwritten by the next run, and record
+which fixture and revision each report came from, since the report does not name
+them. Ask the reviewer to identify which report covers the proposed change
+before showing the author's claim. A sound review rejects the stale receipt even
+when the earlier run passed.
 
-A browser or implementation check can supply different evidence when needed.
-This catalogue entry changes no gate rule, installs no workflow, and makes no
-claim that a manual receipt protocol is enforced by the runner.
+A browser or implementation check, not a gate report, is the evidence that a
+feature works. This catalogue entry changes no gate rule, installs no workflow,
+and makes no claim that a manual receipt protocol is enforced by the runner.
